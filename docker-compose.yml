@@ -1,6 +1,7 @@
 services:
   alertboard:
     image: ghcr.io/wendor/alertboard:latest
+    container_name: alertboard
     # to build from source instead: docker compose up -d --build
     build: .
     ports:

@@ -37,7 +37,7 @@ docker run -d -p 8080:8080 \
   alertboard
 ```
 
-Or `docker compose up -d` with the bundled `docker-compose.yml`; credentials are taken from `.env` next to it. Note that `docker run --env-file` passes values literally, quotes included, so don't quote values in a file used that way. The image sets `LISTEN=0.0.0.0:8080`, so `listen` from the config is not used inside the container. Prebuilt `linux/amd64` and `linux/arm64` images are published to `ghcr.io/wendor/alertboard` when a `v*` tag is pushed.
+Or `docker compose up -d` with the bundled `docker-compose.yml`; credentials are taken from `.env` next to it. Note that `docker run --env-file` passes values literally, quotes included, so don't quote values in a file used that way. The image sets `LISTEN=0.0.0.0:8080`, so `listen` from the config is not used inside the container. Prebuilt `linux/amd64` and `linux/arm64` images are published to `ghcr.io/wendor/alertboard`: a `v*` tag publishes `X.Y.Z`, `X.Y` and `latest`, every push to the default branch publishes `edge` and `sha-<commit>`.
 
 ## Authentication
 
