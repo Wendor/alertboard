@@ -33,7 +33,8 @@ describe('addMatcher', () => {
 
   it('builds the matcher', () => {
     expect(hostMatcher('node', ['db1.dc'])).toBe('node="db1.dc"')
-    expect(hostMatcher('node', ['db1.dc', 'a"b'])).toBe('node=~"db1\\\\.dc|a\\"b"')
+    expect(hostMatcher('node', ['db1.dc', 'a"b'])).toBe('node=~"db1.dc|a\\"b"')
+    expect(hostMatcher('node', ['db1.dc', 'x+(1)'])).toBe('node=~"db1.dc|x\\\\+\\\\(1\\\\)"')
   })
 })
 

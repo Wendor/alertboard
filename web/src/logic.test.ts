@@ -265,7 +265,7 @@ describe('grafana links', () => {
 
   it('host matcher uses the label hosts come from, none when it is missing or mixed', () => {
     expect(hostSelector([alert({ node: 'db1.dc' }, H)], g)).toBe('node="db1.dc"')
-    expect(hostSelector([alert({ node: 'db2' }, H), alert({ node: 'db1.dc', instance: 'x' }, H)], g)).toBe('node=~"db1\\\\.dc|db2"')
+    expect(hostSelector([alert({ node: 'db2' }, H), alert({ node: 'db1.dc', instance: 'x' }, H)], g)).toBe('node=~"db1.dc|db2"')
     expect(hostSelector([alert({ instance: '10.0.0.1:9100' }, H)], g)).toBe('instance="10.0.0.1:9100"')
     expect(hostSelector([alert({ node: 'a' }, H), alert({ instance: 'b' }, H)], g)).toBeNull()
     expect(hostSelector([alert({ node: 'a' }, H), alert({}, H)], g)).toBeNull()

@@ -107,7 +107,8 @@ export function addMatcher(expr: string, matcher: string): string {
 }
 
 const promString = (s: string) => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
-const reEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+// dots stay as is: in host names they match themselves and keep the query readable
+const reEscape = (s: string) => s.replace(/[*+?^${}()|[\]\\]/g, '\\$&')
 
 // label="v" for one value, label=~"a|b" for several
 export function hostMatcher(label: string, values: string[]): string {
