@@ -8,7 +8,7 @@ import { parseArgs } from 'node:util'
 import { AlertmanagerClient } from './alertmanager.js'
 import { AppModule } from './app.module.js'
 import { credentialsFromEnv } from './basic-auth.js'
-import { loadConfig, splitHostPort } from './config.js'
+import { loadConfig, readTLS, splitHostPort } from './config.js'
 
 async function main() {
   const { values } = parseArgs({
@@ -25,13 +25,17 @@ async function main() {
   if (listen) cfg.listen = listen
   const { host, port } = splitHostPort(cfg.listen)
   const auth = credentialsFromEnv(process.env)
+  const httpsOptions = cfg.tls ? readTLS(cfg.tls) : undefined
 
   const client = new AlertmanagerClient(cfg.alertmanager.url, process.env.AM_USER, process.env.AM_PASSWORD)
   const staticRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../web/dist')
-  const app = await NestFactory.create(AppModule.create(cfg, client, staticRoot, auth), { logger: ['log', 'error', 'warn'] })
+  const app = await NestFactory.create(AppModule.create(cfg, client, staticRoot, auth), {
+    logger: ['log', 'error', 'warn'],
+    httpsOptions,
+  })
   app.enableShutdownHooks()
   await app.listen(port, host)
-  Logger.log(`alertboard listening on http://${cfg.listen}${auth ? ' (basic auth)' : ''}`, 'main')
+  Logger.log(`alertboard listening on ${httpsOptions ? 'https' : 'http'}://${cfg.listen}${auth ? ' (basic auth)' : ''}`, 'main')
 }
 
 main().catch((e) => {

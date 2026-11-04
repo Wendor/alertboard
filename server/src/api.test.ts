@@ -1,7 +1,8 @@
 import 'reflect-metadata'
 import type { INestApplication } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import request from 'supertest'
@@ -34,10 +35,10 @@ problems: [{ match: .*DiskSpace.*, title: Диск }]
 
 let app: INestApplication | undefined
 
-async function start(f: Fetcher, auth?: Credentials) {
+async function start(f: Fetcher, auth?: Credentials, httpsOptions?: { cert: Buffer; key: Buffer }) {
   const dir = mkdtempSync(join(tmpdir(), 'alertboard-'))
   writeFileSync(join(dir, 'index.html'), '<html>app</html>')
-  app = await NestFactory.create(AppModule.create(cfg(), f, dir, auth), { logger: false })
+  app = await NestFactory.create(AppModule.create(cfg(), f, dir, auth), { logger: false, httpsOptions })
   await app.init()
   return app.getHttpServer()
 }
@@ -135,5 +136,14 @@ describe('api', () => {
     expect(credentialsFromEnv({ AUTH_USER: 'a', AUTH_PASSWORD: 'b' })).toEqual({ user: 'a', password: 'b' })
     expect(() => credentialsFromEnv({ AUTH_USER: 'a' })).toThrow(/together/)
     expect(() => credentialsFromEnv({ AUTH_PASSWORD: 'b' })).toThrow(/together/)
+  })
+
+  it('serves https when certificates are given', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'alertboard-tls-'))
+    const [crt, key] = [join(dir, 'tls.crt'), join(dir, 'tls.key')]
+    execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-subj', '/CN=localhost', '-keyout', key, '-out', crt], { stdio: 'ignore' })
+    const srv = await start(new FakeFetcher(), undefined, { cert: readFileSync(crt), key: readFileSync(key) })
+    const r = await request(srv).get('/api/config').disableTLSCerts().expect(200)
+    expect(r.request.url.startsWith('https://')).toBe(true)
   })
 })

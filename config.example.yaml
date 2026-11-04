@@ -1,4 +1,8 @@
 listen: 127.0.0.1:8080
+# serve https instead of http when both are set; relative paths are resolved against this file's directory
+# tls:
+#   cert: certs/tls.crt   # certificate, with the intermediate chain appended
+#   key: certs/tls.key
 cache_ttl: 5s
 
 alertmanager:

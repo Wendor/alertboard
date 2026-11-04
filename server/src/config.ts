@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
 import { load } from 'js-yaml'
 
 // a plain string or a per-language map, e.g. {ru: Диск, en: Disk}
@@ -54,8 +55,14 @@ export interface UI {
   views: View[]
 }
 
+export interface TLS {
+  cert: string
+  key: string
+}
+
 export interface Config {
   listen: string
+  tls?: TLS
   cacheTtlMs: number
   alertmanager: { url: string; publicUrl: string }
   prometheus: PrometheusLink[]
@@ -110,7 +117,8 @@ function view(v: Raw): View {
   }
 }
 
-export function parseConfig(text: string, source = 'config'): Config {
+// relative tls paths are resolved against baseDir (the config file's directory)
+export function parseConfig(text: string, source = 'config', baseDir = process.cwd()): Config {
   let raw: Raw
   try {
     raw = (load(text) as Raw) ?? {}
@@ -123,6 +131,10 @@ export function parseConfig(text: string, source = 'config'): Config {
   const amURL = str(am.url)
   if (!amURL) throw new Error(`${source}: alertmanager.url is required`)
 
+  const tlsRaw: Raw = raw.tls ?? {}
+  const cert = str(tlsRaw.cert)
+  const key = str(tlsRaw.key)
+  if (!cert !== !key) throw new Error(`${source}: tls.cert and tls.key must be set together`)
   const problems: Problem[] = list(raw.problems, (x) => ({ match: str(x.match), title: localized(x.title) }))
   const prometheus: PrometheusLink[] = []
   if (prom.url) prometheus.push({ name: str(prom.name) || 'prom', url: str(prom.url) })
@@ -130,6 +142,7 @@ export function parseConfig(text: string, source = 'config'): Config {
 
   const cfg: Config = {
     listen: str(raw.listen) || '127.0.0.1:8080',
+    tls: cert ? { cert: resolve(baseDir, cert), key: resolve(baseDir, key) } : undefined,
     cacheTtlMs: 5000,
     alertmanager: { url: amURL, publicUrl: str(am.public_url) || amURL },
     prometheus,
@@ -164,5 +177,16 @@ export function parseConfig(text: string, source = 'config'): Config {
 }
 
 export function loadConfig(path: string): Config {
-  return parseConfig(readFileSync(path, 'utf8'), path)
+  return parseConfig(readFileSync(path, 'utf8'), path, dirname(resolve(path)))
+}
+
+export function readTLS(tls: TLS): { cert: Buffer; key: Buffer } {
+  const read = (what: string, path: string) => {
+    try {
+      return readFileSync(path)
+    } catch (e) {
+      throw new Error(`tls.${what}: ${(e as Error).message}`)
+    }
+  }
+  return { cert: read('cert', tls.cert), key: read('key', tls.key) }
 }

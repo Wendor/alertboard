@@ -37,11 +37,15 @@ docker run -d -p 8080:8080 \
   alertboard
 ```
 
-Or `docker compose up -d` with the bundled `compose.yaml`; credentials are taken from `.env` next to it. Note that `docker run --env-file` passes values literally, quotes included, so don't quote values in a file used that way. The image sets `LISTEN=0.0.0.0:8080`, so `listen` from the config is not used inside the container. Prebuilt `linux/amd64` and `linux/arm64` images are published to `ghcr.io/wendor/alertboard` when a `v*` tag is pushed.
+Or `docker compose up -d` with the bundled `docker-compose.yml`; credentials are taken from `.env` next to it. Note that `docker run --env-file` passes values literally, quotes included, so don't quote values in a file used that way. The image sets `LISTEN=0.0.0.0:8080`, so `listen` from the config is not used inside the container. Prebuilt `linux/amd64` and `linux/arm64` images are published to `ghcr.io/wendor/alertboard` when a `v*` tag is pushed.
 
 ## Authentication
 
-Set `AUTH_USER` and `AUTH_PASSWORD` to require HTTP basic auth for the whole UI and API; both must be set, otherwise the server refuses to start. Without them the page is open, so keep it on localhost or a trusted network (the bundled `compose.yaml` publishes the port on `127.0.0.1` only). Basic auth sends the password with every request, so serve it over HTTPS (e.g. behind a reverse proxy) when it leaves a trusted network.
+Set `AUTH_USER` and `AUTH_PASSWORD` to require HTTP basic auth for the whole UI and API; both must be set, otherwise the server refuses to start. Without them the page is open, so keep it on localhost or a trusted network (the bundled `docker-compose.yml` publishes the port on `127.0.0.1` only). Basic auth sends the password with every request, so serve it over HTTPS (see below, or behind a reverse proxy) when it leaves a trusted network.
+
+## HTTPS
+
+Set `tls.cert` and `tls.key` in the config to serve HTTPS instead of HTTP on the same `listen` address. Relative paths are resolved against the config file's directory; the certificate file should contain the intermediate chain. Both must be set, and the server refuses to start if a file cannot be read. Certificates are read at startup, so restart the server after renewing them. In Docker, mount the certificates next to the config (see the comment in `docker-compose.yml`). `make dev` follows the config: Vite proxies `/api` to the HTTPS backend and accepts a self-signed certificate.
 
 ## Configuration
 

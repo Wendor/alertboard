@@ -13,4 +13,7 @@ services:
       AUTH_PASSWORD: ${AUTH_PASSWORD:-}
     volumes:
       - ./config.yaml:/etc/alertboard/config.yaml:ro
+      # for https: mount certificates and set tls.cert/tls.key in config.yaml,
+      # e.g. cert: certs/tls.crt -> /etc/alertboard/certs/tls.crt
+      # - ./certs:/etc/alertboard/certs:ro
     restart: unless-stopped

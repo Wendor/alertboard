@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseConfig, parseDuration, splitHostPort } from './config.js'
+import { parseConfig, parseDuration, readTLS, splitHostPort } from './config.js'
 import { Enricher } from './enrich.js'
 
 const enricher = () =>
@@ -130,6 +130,17 @@ ui:
     const e = new Enricher(c.problems, [])
     expect(e.problem('DiskFull')).toBe('Диск')
     expect(e.problem('LoadHigh')).toBe('Нагрузка')
+  })
+
+  it('tls paths are resolved against the config directory and must be set together', () => {
+    const base = 'alertmanager: { url: http://am }\n'
+    expect(parseConfig(base).tls).toBeUndefined()
+    expect(parseConfig(base + 'tls: { cert: certs/a.crt, key: /etc/k.key }', 'c', '/srv/ab').tls).toEqual({
+      cert: '/srv/ab/certs/a.crt',
+      key: '/etc/k.key',
+    })
+    expect(() => parseConfig(base + 'tls: { cert: a.crt }')).toThrow(/must be set together/)
+    expect(() => readTLS({ cert: '/nonexistent.crt', key: '/nonexistent.key' })).toThrow(/tls.cert/)
   })
 
   it('validation errors', () => {
