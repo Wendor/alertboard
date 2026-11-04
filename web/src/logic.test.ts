@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { apiURL } from './api'
 import { formatAge, parseDuration } from './duration'
 import { setLocale, tr } from './i18n'
 import { buildSections, filterAlerts } from './group'
@@ -68,6 +69,13 @@ describe('duration', () => {
     expect(formatAge(10 * H)).toBe('10 ч')
     expect(formatAge(2 * 24 * H)).toBe('2 д')
     expect(formatAge(80 * 24 * H)).toBe('2 мес')
+  })
+})
+
+describe('apiURL', () => {
+  it('drops credentials of the page URL', () => {
+    // location.origin never carries user:pass, so the API URL is clean
+    expect(apiURL('/api/config', new URL('https://u:p@board.example:8443/view#x').origin)).toBe('https://board.example:8443/api/config')
   })
 })
 
