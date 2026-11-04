@@ -26,13 +26,33 @@ function rangeFrom(startMs: number, now: number): string {
   return at < now - 6 * HOUR ? String(at) : 'now-6h'
 }
 
-// Explore links for alerts sharing the first alert's expression, filtered to their hosts
-export function grafanaLinks(alerts: Alert[], cfg: UIConfig, now = Date.now()): Link[] {
+// the first alert's expression narrowed to the hosts of the alerts that share it
+export function scopedExpr(alerts: Alert[], cfg: UIConfig): { query: string; alerts: Alert[] } | null {
   const expr = alerts.find((a) => a.expr)?.expr
-  if (!expr || !cfg.grafana.length) return []
+  if (!expr) return null
   const same = alerts.filter((a) => a.expr === expr)
   const matcher = hostSelector(same, cfg)
-  const query = matcher ? addMatcher(expr, matcher) : expr
+  return { query: matcher ? addMatcher(expr, matcher) : expr, alerts: same }
+}
+
+// Prometheus links as built by the server, with g0.expr replaced by the narrowed expression
+export function promLinks(alerts: Alert[], cfg: UIConfig): Link[] {
+  const scoped = scopedExpr(alerts, cfg)
+  const links = (scoped?.alerts ?? alerts).find((a) => a.promLinks.length)?.promLinks ?? []
+  if (!scoped) return links
+  return links.map((l) => {
+    const u = new URL(l.url)
+    if (!u.searchParams.has('g0.expr')) return l
+    u.searchParams.set('g0.expr', scoped.query)
+    return { name: l.name, url: u.href }
+  })
+}
+
+// Explore links for alerts sharing the first alert's expression, filtered to their hosts
+export function grafanaLinks(alerts: Alert[], cfg: UIConfig, now = Date.now()): Link[] {
+  const scoped = scopedExpr(alerts, cfg)
+  if (!scoped || !cfg.grafana.length) return []
+  const { query, alerts: same } = scoped
   const from = rangeFrom(Math.min(...same.map(startOf)), now)
   return cfg.grafana.map((g) => {
     const panes = {

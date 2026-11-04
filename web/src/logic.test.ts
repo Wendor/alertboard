@@ -3,7 +3,7 @@ import { apiURL } from './api'
 import { formatAge, formatValue, parseDuration } from './duration'
 import { setLocale, tr } from './i18n'
 import { buildSections, filterAlerts, moveSection } from './group'
-import { grafanaLinks, hostSelector } from './grafana'
+import { grafanaLinks, hostSelector, promLinks } from './metrics'
 import { commonLabels, renderLink, silenceURL } from './links'
 import { buildHistogram } from './timeline'
 import type { Alert, UIConfig, ViewState } from './types'
@@ -287,5 +287,33 @@ describe('grafana links', () => {
     expect(panes(grafanaLinks([alert({}, H, { expr: 'up == 0' })], g, NOW)[0].url).queries[0].expr).toBe('up == 0')
     expect(grafanaLinks([alert({}, H)], g, NOW)).toEqual([])
     expect(grafanaLinks(a, cfg, NOW)).toEqual([])
+  })
+})
+
+describe('prom links', () => {
+  const gen = (expr: string) => [
+    { name: 'prom', url: `http://prom.example/graph?g0.expr=${encodeURIComponent(expr)}&g0.tab=1` },
+    { name: 'prom-b', url: `http://prom-b.example/graph?g0.expr=${encodeURIComponent(expr)}&g0.tab=1` },
+  ]
+  const expr = (url: string) => new URL(url).searchParams.get('g0.expr')
+
+  it('replace g0.expr with the expression narrowed to the hosts, keep other params', () => {
+    const a = [
+      alert({ node: 'n1' }, H, { expr: 'up == 0', promLinks: gen('up == 0') }),
+      alert({ node: 'n2' }, H, { expr: 'up == 0', promLinks: gen('up == 0') }),
+      alert({ node: 'n3' }, H, { expr: 'other', promLinks: gen('other') }),
+    ]
+    const links = promLinks(a, cfg)
+    expect(links.map((l) => l.name)).toEqual(['prom', 'prom-b'])
+    expect(links.map((l) => expr(l.url))).toEqual(['up{node=~"n1|n2"} == 0', 'up{node=~"n1|n2"} == 0'])
+    expect(new URL(links[0].url).searchParams.get('g0.tab')).toBe('1')
+    expect(expr(promLinks([a[2]], cfg)[0].url)).toBe('other{node="n3"}')
+  })
+
+  it('left as is without a host or an expression', () => {
+    const noHost = alert({}, H, { expr: 'up == 0', promLinks: gen('up == 0') })
+    expect(expr(promLinks([noHost], cfg)[0].url)).toBe('up == 0')
+    const noExpr = alert({ node: 'n' }, H, { promLinks: [{ name: 'prom', url: 'http://p/graph' }] })
+    expect(promLinks([noExpr], cfg)).toEqual([{ name: 'prom', url: 'http://p/graph' }])
   })
 })

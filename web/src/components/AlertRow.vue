@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { formatAge, formatTime, formatValue } from '../duration'
 import { hostOf, isSuppressed, startOf, type Row } from '../group'
-import { grafanaLinks } from '../grafana'
+import { grafanaLinks, promLinks as metricLinks } from '../metrics'
 import { dateLocale, t, tr } from '../i18n'
 import { commonLabels, renderLink, silenceURL } from '../links'
 import type { Alert, UIConfig, ViewState } from '../types'
@@ -16,11 +16,8 @@ const labelsOpen = ref(new Set<string>())
 
 const r = computed(() => props.row)
 const problems = computed(() => [...new Set(r.value.alerts.map((a) => a.problem))])
-const promLinks = computed(() => [
-  ...(r.value.alerts.find((a) => a.promLinks.length)?.promLinks ?? []),
-  ...grafanaLinks(r.value.alerts, props.cfg, props.now),
-])
-const alertLinks = (a: Alert) => [...a.promLinks, ...grafanaLinks([a], props.cfg, props.now)]
+const promLinks = computed(() => [...metricLinks(r.value.alerts, props.cfg), ...grafanaLinks(r.value.alerts, props.cfg, props.now)])
+const alertLinks = (a: Alert) => [...metricLinks([a], props.cfg), ...grafanaLinks([a], props.cfg, props.now)]
 const silenceAll = computed(() => silenceURL(props.cfg.alertmanagerURL, commonLabels(r.value.alerts)))
 const suppressed = computed(() => r.value.alerts.filter(isSuppressed).length)
 const single = computed(() => r.value.count === 1)
