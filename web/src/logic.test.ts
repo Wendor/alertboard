@@ -271,7 +271,7 @@ describe('grafana links', () => {
     expect(hostSelector([alert({ node: 'a' }, H), alert({}, H)], g)).toBeNull()
   })
 
-  it('row link covers alerts with the same expression, range starts from the oldest', () => {
+  it('row link has a query per expression, range starts from the oldest', () => {
     const a = [
       alert({ node: 'n1' }, 2 * H, { expr: 'up == 0' }),
       alert({ node: 'n2' }, 10 * H, { expr: 'up == 0' }),
@@ -280,7 +280,10 @@ describe('grafana links', () => {
     const [l] = grafanaLinks(a, g, NOW)
     expect(l.url.startsWith('https://g.example/explore?')).toBe(true)
     const p = panes(l.url)
-    expect(p.queries[0].expr).toBe('up{node=~"n1|n2"} == 0')
+    expect(p.queries.map((q: { refId: string; expr: string }) => [q.refId, q.expr])).toEqual([
+      ['A', 'up{node=~"n1|n2"} == 0'],
+      ['B', 'other{node="n3"}'],
+    ])
     expect(p.range).toEqual({ from: String(NOW - 11 * H), to: 'now' })
     expect(panes(grafanaLinks([a[0]], g, NOW)[0].url).range.from).toBe('now-6h')
     expect(panes(grafanaLinks([alert({}, 100 * H, { expr: 'x' })], g, NOW)[0].url).range.from).toBe('now-24h')
@@ -306,6 +309,8 @@ describe('prom links', () => {
     const links = promLinks(a, cfg)
     expect(links.map((l) => l.name)).toEqual(['prom', 'prom-b'])
     expect(links.map((l) => expr(l.url))).toEqual(['up{node=~"n1|n2"} == 0', 'up{node=~"n1|n2"} == 0'])
+    const ps = new URL(links[0].url).searchParams
+    expect([ps.get('g0.tab'), ps.get('g1.expr'), ps.get('g1.tab'), ps.get('g2.expr')]).toEqual(['1', 'other{node="n3"}', '1', null])
     const withInstance = [
       alert({ node: 'db', instance: 'db:13308' }, H, { expr: 'x > 1', promLinks: gen('x > 1') }),
       alert({ node: 'db2', instance: 'db2:3306' }, H, { expr: 'x > 1', promLinks: gen('x > 1') }),

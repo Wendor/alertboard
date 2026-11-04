@@ -31,49 +31,51 @@ function rangeFrom(startMs: number, now: number): string {
   return at < now - 6 * HOUR ? String(at) : 'now-6h'
 }
 
-// the first alert's expression narrowed to the hosts of the alerts that share it
-export function scopedExpr(alerts: Alert[], cfg: UIConfig): { query: string; alerts: Alert[] } | null {
-  const expr = alerts.find((a) => a.expr)?.expr
-  if (!expr) return null
-  const same = alerts.filter((a) => a.expr === expr)
-  const hosts = hostsOf(same, cfg)
-  if (!hosts) return { query: expr, alerts: same }
-  // selectors narrowed by host; a host may run several targets (e.g. two mysqld),
-  // so the result is cut down to the alerts' own instances (through their up series) as well
-  let query = addMatcher(expr, hostMatcher(hosts.label, hosts.values))
-  if (hosts.label !== 'instance' && same.every((a) => a.labels.instance)) {
-    query = keepSeries(query, 'instance', [...new Set(same.map((a) => a.labels.instance))].sort())
-  }
-  return { query, alerts: same }
+// one query per distinct expression (a row may mix rules), each narrowed to the hosts of its alerts
+export function scopedExprs(alerts: Alert[], cfg: UIConfig): { query: string; alerts: Alert[] }[] {
+  const byExpr = new Map<string, Alert[]>()
+  for (const a of alerts) if (a.expr) (byExpr.get(a.expr) ?? byExpr.set(a.expr, []).get(a.expr)!).push(a)
+  return [...byExpr].map(([expr, same]) => {
+    const hosts = hostsOf(same, cfg)
+    if (!hosts) return { query: expr, alerts: same }
+    // selectors narrowed by host; a host may run several targets (e.g. two mysqld),
+    // so the result is cut down to the alerts' own instances (through their up series) as well
+    let query = addMatcher(expr, hostMatcher(hosts.label, hosts.values))
+    if (hosts.label !== 'instance' && same.every((a) => a.labels.instance)) {
+      query = keepSeries(query, 'instance', [...new Set(same.map((a) => a.labels.instance))].sort())
+    }
+    return { query, alerts: same }
+  })
 }
 
-// Prometheus links as built by the server, with g0.expr replaced by the narrowed expression
+// Prometheus links as built by the server, one graph panel (g0, g1, ...) per expression;
+// other g0.* parameters such as the tab are copied to every panel
 export function promLinks(alerts: Alert[], cfg: UIConfig): Link[] {
-  const scoped = scopedExpr(alerts, cfg)
-  const links = (scoped?.alerts ?? alerts).find((a) => a.promLinks.length)?.promLinks ?? []
-  if (!scoped) return links
+  const scoped = scopedExprs(alerts, cfg)
+  const links = alerts.find((a) => a.promLinks.length)?.promLinks ?? []
+  if (!scoped.length) return links
   return links.map((l) => {
     const u = new URL(l.url)
     if (!u.searchParams.has('g0.expr')) return l
-    u.searchParams.set('g0.expr', scoped.query)
+    const panel = [...u.searchParams].filter(([k]) => k.startsWith('g0.') && k !== 'g0.expr')
+    for (const k of [...u.searchParams.keys()]) if (/^g\d+\./.test(k)) u.searchParams.delete(k)
+    scoped.forEach(({ query }, i) => {
+      u.searchParams.set(`g${i}.expr`, query)
+      for (const [k, v] of panel) u.searchParams.set(`g${i}.${k.slice(3)}`, v)
+    })
     return { name: l.name, url: u.href }
   })
 }
 
-// Explore links for alerts sharing the first alert's expression, filtered to their hosts
+// Explore links with one query (A, B, ...) per expression, range from the oldest alert
 export function grafanaLinks(alerts: Alert[], cfg: UIConfig, now = Date.now()): Link[] {
-  const scoped = scopedExpr(alerts, cfg)
-  if (!scoped || !cfg.grafana.length) return []
-  const { query, alerts: same } = scoped
-  const from = rangeFrom(Math.min(...same.map(startOf)), now)
+  const scoped = scopedExprs(alerts, cfg)
+  if (!scoped.length || !cfg.grafana.length) return []
+  const from = rangeFrom(Math.min(...scoped.flatMap((s) => s.alerts.map(startOf))), now)
   return cfg.grafana.map((g) => {
-    const panes = {
-      a: {
-        datasource: g.datasource,
-        queries: [{ refId: 'A', expr: query, range: true, instant: false, datasource: { type: 'prometheus', uid: g.datasource } }],
-        range: { from, to: 'now' },
-      },
-    }
+    const datasource = { type: 'prometheus', uid: g.datasource }
+    const queries = scoped.map(({ query }, i) => ({ refId: String.fromCharCode(65 + (i % 26)) + (i >= 26 ? Math.floor(i / 26) : ''), expr: query, range: true, instant: false, datasource }))
+    const panes = { a: { datasource: g.datasource, queries, range: { from, to: 'now' } } }
     const q = new URLSearchParams({ schemaVersion: '1', orgId: g.orgId, panes: JSON.stringify(panes) })
     return { name: g.name, url: `${g.url}/explore?${q}` }
   })
