@@ -151,7 +151,7 @@ function sectionsOf(alerts: Alert[], view: ViewState, cfg: UIConfig, now: number
     })
   }
   const order = new Map(cfg.groups.map((g, i) => [g.name, i]))
-  const custom = new Map(view.sectionOrder.map((k, i) => [k, i]))
+  const custom = new Map(orderOf(view).map((k, i) => [k, i]))
   const rank = (s: Section) => {
     const c = custom.get(s.key)
     if (c !== undefined) return c - custom.size
@@ -161,6 +161,8 @@ function sectionsOf(alerts: Alert[], view: ViewState, cfg: UIConfig, now: number
   }
   return sections.sort((a, b) => rank(a) - rank(b) || b.newest - a.newest)
 }
+
+export const orderOf = (view: ViewState): string[] => view.sectionOrder[view.groupBy[0]] ?? []
 
 // swaps section i with its neighbour; keys of sections not shown now keep their saved place at the end
 export function moveSection(sections: Section[], saved: string[], i: number, dir: -1 | 1): string[] {

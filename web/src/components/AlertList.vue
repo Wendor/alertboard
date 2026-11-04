@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { moveSection, type Section } from '../group'
+import { moveSection, orderOf, type Section } from '../group'
 import type { UIConfig, ViewState } from '../types'
 import AlertRow from './AlertRow.vue'
 
@@ -22,7 +22,7 @@ function toggle(key: string) {
   collapsed.value = s
 }
 const move = (i: number, dir: -1 | 1, sections: Section[], view: ViewState) =>
-  emit('update', { sectionOrder: moveSection(sections, view.sectionOrder, i, dir) })
+  emit('update', { sectionOrder: { ...view.sectionOrder, [view.groupBy[0]]: moveSection(sections, orderOf(view), i, dir) } })
 const sum = (s: Section[]) => s.reduce((n, x) => n + x.count, 0)
 </script>
 

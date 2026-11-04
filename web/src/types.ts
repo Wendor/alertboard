@@ -73,8 +73,8 @@ export interface ViewState {
   groupBy: [GroupKey, GroupKey]
   hiddenGroups: string[]
   hiddenProblems: string[]
-  // section keys in the user's order; sections not listed follow in the default order
-  sectionOrder: string[]
+  // per first grouping level: section keys in the user's order; unlisted sections follow in the default order
+  sectionOrder: Partial<Record<GroupKey, string[]>>
   showSilenced: boolean
   collapseStale: boolean
   staleAfter: string

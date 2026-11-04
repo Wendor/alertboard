@@ -42,6 +42,11 @@ describe('views', () => {
     expect(viewTitle('Мой вид', c)).toBe('Мой вид')
   })
 
+  it('old plain section order lists and config lists map to the first grouping level', () => {
+    expect(fromConfig({ name: 'x', groupBy: ['host', 'none'], sectionOrder: ['a', 'b'] }, cfg).sectionOrder).toEqual({ host: ['a', 'b'] })
+    expect(fromConfig({ name: 'x' }, cfg).sectionOrder).toEqual({})
+  })
+
   it('hash round-trips', () => {
     const v: ViewState = {
       name: 'Базы',
@@ -49,7 +54,7 @@ describe('views', () => {
       groupBy: ['problem', 'host'],
       hiddenGroups: ['batch', ''],
       hiddenProblems: ['Мало места на диске', 'A,B'],
-      sectionOrder: ['ops', '', 'core'],
+      sectionOrder: { problem: ['ops', '', 'core'] },
       showSilenced: true,
       collapseStale: false,
       staleAfter: '3d',

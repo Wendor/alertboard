@@ -50,7 +50,7 @@ const view = (over: Partial<ViewState> = {}): ViewState => ({
   groupBy: ['group', 'problem'],
   hiddenGroups: [],
   hiddenProblems: [],
-  sectionOrder: [],
+  sectionOrder: {},
   showSilenced: false,
   collapseStale: true,
   staleAfter: '7d',
@@ -190,12 +190,19 @@ describe('section order', () => {
     alert({ alertname: 'B', team: 'ops' }, H),
     alert({ alertname: 'C' }, H),
   ]
-  const titles = (order: string[]) => buildSections(a, view({ sectionOrder: order }), cfg, NOW).sections.map((s) => s.title)
+  const titles = (order: string[]) => buildSections(a, view({ sectionOrder: { group: order, 'label:owner': ['x'] } }), cfg, NOW).sections.map((s) => s.title)
 
   it('custom order goes first, unlisted sections follow in default order', () => {
     expect(titles([])).toEqual(['Core', 'Ops', 'без группы'])
     expect(titles(['', 'ops'])).toEqual(['без группы', 'Ops', 'Core'])
     expect(titles(['ops'])).toEqual(['Ops', 'Core', 'без группы'])
+  })
+
+  it('each first grouping level keeps its own order', () => {
+    const v = view({ groupBy: ['label:owner', 'problem'], sectionOrder: { group: ['ops', 'core'] } })
+    const b = [alert({ alertname: 'A', owner: 'db' }, H), alert({ alertname: 'B', owner: 'web' }, 2 * H)]
+    expect(buildSections(b, v, cfg, NOW).sections.map((s) => s.title)).toEqual(['db', 'web'])
+    expect(buildSections(b, { ...v, sectionOrder: { ...v.sectionOrder, 'label:owner': ['web'] } }, cfg, NOW).sections.map((s) => s.title)).toEqual(['web', 'db'])
   })
 
   it('moveSection swaps neighbours and keeps saved keys of hidden sections', () => {

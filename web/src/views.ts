@@ -1,4 +1,4 @@
-import { groupKeys } from './group'
+import { groupKeys, orderOf } from './group'
 import { t, textKey, tr } from './i18n'
 import { RANGES, type ConfigView, type GroupKey, type Range, type UIConfig, type ViewState } from './types'
 
@@ -15,14 +15,19 @@ const asGroupBy = (g: string[] | undefined, cfg: UIConfig): [GroupKey, GroupKey]
 ]
 const asRange = (s: string | undefined): Range => (RANGES.includes(s as Range) ? (s as Range) : '24h')
 
+// views saved before the order was kept per grouping level stored a plain list
+const asOrder = (o: unknown, level: GroupKey): ViewState['sectionOrder'] =>
+  Array.isArray(o) ? (o.length ? { [level]: o.map(String) } : {}) : o && typeof o === 'object' ? (o as ViewState['sectionOrder']) : {}
+
 export function fromConfig(v: ConfigView, cfg: UIConfig): ViewState {
+  const groupBy = asGroupBy(v.groupBy, cfg)
   return {
     name: textKey(v.name),
     query: v.query ?? '',
-    groupBy: asGroupBy(v.groupBy, cfg),
+    groupBy,
     hiddenGroups: v.hiddenGroups ?? [],
     hiddenProblems: v.hiddenProblems ?? [],
-    sectionOrder: v.sectionOrder ?? [],
+    sectionOrder: asOrder(v.sectionOrder, groupBy[0]),
     showSilenced: v.showSilenced ?? false,
     collapseStale: v.collapseStale ?? true,
     staleAfter: v.staleAfter || cfg.staleAfter,
@@ -41,12 +46,17 @@ export function defaultViews(cfg: UIConfig): ViewState[] {
   return views.length ? views : [fromConfig({ name: t('views.all') }, cfg)]
 }
 
+function normalized(v: ViewState, cfg: UIConfig): Pick<ViewState, 'groupBy' | 'sectionOrder'> {
+  const groupBy = asGroupBy(v.groupBy, cfg)
+  return { groupBy, sectionOrder: asOrder(v.sectionOrder, groupBy[0]) }
+}
+
 export function loadViews(cfg: UIConfig): ViewState[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as ViewState[]
-      if (Array.isArray(parsed) && parsed.length) return parsed.map((v) => ({ ...fromConfig({ name: v.name }, cfg), ...v, groupBy: asGroupBy(v.groupBy, cfg), timeFilter: undefined }))
+      if (Array.isArray(parsed) && parsed.length) return parsed.map((v) => ({ ...fromConfig({ name: v.name }, cfg), ...v, ...normalized(v, cfg), timeFilter: undefined }))
     }
   } catch {
     /* corrupted storage falls back to defaults */
@@ -73,7 +83,8 @@ export function toHash(v: ViewState): string {
   p.set('g', v.groupBy.join(','))
   if (v.hiddenGroups.length) p.set('hg', v.hiddenGroups.join(','))
   if (v.hiddenProblems.length) p.set('hp', v.hiddenProblems.join('|'))
-  if (v.sectionOrder.length) p.set('o', v.sectionOrder.join('|'))
+  const order = orderOf(v)
+  if (order.length) p.set('o', order.join('|'))
   if (v.showSilenced) p.set('silenced', '1')
   if (!v.collapseStale) p.set('stale', 'show')
   p.set('sa', v.staleAfter)
@@ -94,7 +105,7 @@ export function fromHash(hash: string, cfg: UIConfig): ViewState | null {
     groupBy: asGroupBy(g, cfg),
     hiddenGroups: split(p.get('hg'), ','),
     hiddenProblems: split(p.get('hp'), '|'),
-    sectionOrder: split(p.get('o'), '|'),
+    sectionOrder: asOrder(split(p.get('o'), '|'), asGroupBy(g, cfg)[0]),
     showSilenced: p.get('silenced') === '1',
     collapseStale: p.get('stale') !== 'show',
     staleAfter: p.get('sa') || cfg.staleAfter,
