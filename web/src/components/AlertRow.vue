@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { formatAge, formatTime } from '../duration'
+import { formatAge, formatTime, formatValue } from '../duration'
 import { hostOf, isSuppressed, startOf, type Row } from '../group'
 import { dateLocale, t, tr } from '../i18n'
 import { commonLabels, renderLink, silenceURL } from '../links'
@@ -37,7 +37,6 @@ function toggleLabels(fp: string) {
   s.has(fp) ? s.delete(fp) : s.add(fp)
   labelsOpen.value = s
 }
-const formatValue = (v: string) => (/^-?\d+\.\d{3,}$/.test(v) ? String(Number(Number(v).toFixed(2))) : v)
 const describe = (a: Alert) => a.annotations.name || hostOf(a, props.cfg) || a.alertname
 const extraLinks = (a: Alert) => props.cfg.links.map((l) => ({ name: tr(l.name), url: renderLink(l.url, a.labels) }))
 </script>

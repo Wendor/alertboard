@@ -30,3 +30,13 @@ export function formatTime(ms: number, now: number): string {
   if (new Date(now).toDateString() === d.toDateString()) return hm
   return `${d.toLocaleDateString(dateLocale(), { day: '2-digit', month: '2-digit' })} ${hm}`
 }
+
+// annotation values come as raw strings like "4.97342" or "3.0291962e+07"
+export function formatValue(v: string): string {
+  const s = v.trim()
+  const n = Number(s)
+  if (s === '' || !Number.isFinite(n)) return v
+  if (Math.abs(n) >= 1e6) return new Intl.NumberFormat(dateLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+  if (!Number.isInteger(n)) return String(Number(n.toFixed(2)))
+  return String(n)
+}

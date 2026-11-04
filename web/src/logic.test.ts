@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { apiURL } from './api'
-import { formatAge, parseDuration } from './duration'
+import { formatAge, formatValue, parseDuration } from './duration'
 import { setLocale, tr } from './i18n'
 import { buildSections, filterAlerts } from './group'
 import { commonLabels, renderLink, silenceURL } from './links'
@@ -69,6 +69,19 @@ describe('duration', () => {
     expect(formatAge(10 * H)).toBe('10 ч')
     expect(formatAge(2 * 24 * H)).toBe('2 д')
     expect(formatAge(80 * 24 * H)).toBe('2 мес')
+  })
+})
+
+describe('formatValue', () => {
+  it('rounds and shortens numbers, leaves text as is', () => {
+    expect(formatValue('3.0291962e+07')).toBe('30,3\u00a0млн')
+    expect(formatValue('4.97342')).toBe('4.97')
+    expect(formatValue('1159')).toBe('1159')
+    expect(formatValue('0')).toBe('0')
+    expect(formatValue('none')).toBe('none')
+    expect(formatValue('')).toBe('')
+    setLocale('en')
+    expect(formatValue('5.5770223e+07')).toBe('55.8M')
   })
 })
 
