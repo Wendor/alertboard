@@ -3,6 +3,7 @@ import { apiURL } from './api'
 import { formatAge, formatValue, parseDuration } from './duration'
 import { setLocale, tr } from './i18n'
 import { buildSections, filterAlerts, moveSection } from './group'
+import { filterExpr, grafanaLinks, hostFilter } from './grafana'
 import { commonLabels, renderLink, silenceURL } from './links'
 import { buildHistogram } from './timeline'
 import type { Alert, UIConfig, ViewState } from './types'
@@ -24,6 +25,7 @@ function alert(labels: Record<string, string>, agoMs: number, extra: Partial<Ale
     state: 'active',
     silencedBy: [],
     inhibitedBy: [],
+    expr: '',
     promLinks: [],
     ...extra,
   }
@@ -39,6 +41,7 @@ const cfg: UIConfig = {
   staleAfter: '7d',
   freshWithin: '1h',
   hostLabels: ['node', 'instance'],
+  grafana: [],
   groupByLabels: [{ label: 'owner', title: 'владелец' }],
   links: [],
   views: [],
@@ -253,5 +256,40 @@ describe('links', () => {
   })
   it('renderLink substitutes and encodes labels', () => {
     expect(renderLink('https://g/d?var-node={{node}}&x={{missing}}', { node: 'a b' })).toBe('https://g/d?var-node=a%20b&x=')
+  })
+})
+
+describe('grafana links', () => {
+  const g = { ...cfg, grafana: [{ name: 'grafana', url: 'https://g.example', datasource: 'ds1', orgId: '1' }] }
+  const panes = (url: string) => JSON.parse(new URL(url).searchParams.get('panes')!).a
+
+  it('filters the expression to the hosts of the alerts, by the label each host comes from', () => {
+    const f = hostFilter([alert({ node: 'db1.dc' }, H), alert({ node: 'db2' }, H), alert({ instance: '10.0.0.1:9100' }, H), alert({}, H)], g)
+    expect([...f]).toEqual([
+      ['node', ['db1.dc', 'db2']],
+      ['instance', ['10.0.0.1:9100']],
+    ])
+    expect(filterExpr('up == 0', new Map())).toBe('up == 0')
+    expect(filterExpr('up == 0', new Map([['node', ['db1.dc', 'a"b']]]))).toBe(
+      'label_replace(label_replace((up == 0), "alertboard_host", "1", "node", "db1\\\\.dc|a\\"b") and on(alertboard_host) label_replace(vector(1), "alertboard_host", "1", "", ""), "alertboard_host", "", "", "")',
+    )
+  })
+
+  it('row link covers alerts with the same expression, range starts from the oldest', () => {
+    const a = [
+      alert({ node: 'n1' }, 2 * H, { expr: 'up == 0' }),
+      alert({ node: 'n2' }, 10 * H, { expr: 'up == 0' }),
+      alert({ node: 'n3' }, H, { expr: 'other' }),
+    ]
+    const [l] = grafanaLinks(a, g, NOW)
+    expect(l.url.startsWith('https://g.example/explore?')).toBe(true)
+    const p = panes(l.url)
+    expect(p.queries[0].expr).toContain('"n1|n2"')
+    expect(p.queries[0].expr).not.toContain('n3')
+    expect(p.range).toEqual({ from: String(NOW - 11 * H), to: 'now' })
+    expect(panes(grafanaLinks([a[0]], g, NOW)[0].url).range.from).toBe('now-6h')
+    expect(panes(grafanaLinks([alert({}, 100 * H, { expr: 'x' })], g, NOW)[0].url).range.from).toBe('now-24h')
+    expect(grafanaLinks([alert({}, H)], g, NOW)).toEqual([])
+    expect(grafanaLinks(a, cfg, NOW)).toEqual([])
   })
 })

@@ -10,6 +10,7 @@ const cfg: UIConfig = {
   staleAfter: '7d',
   freshWithin: '1h',
   hostLabels: ['instance'],
+  grafana: [],
   groupByLabels: [{ label: 'type', title: 'чат' }],
   links: [],
   views: [],

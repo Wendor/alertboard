@@ -76,6 +76,7 @@ describe('api', () => {
         state: 'suppressed',
         silencedBy: ['s1'],
         inhibitedBy: [],
+        expr: 'up',
         promLinks: [{ name: 'prom', url: 'http://prom:8090/graph?g0.expr=up' }],
       },
     ])
@@ -107,6 +108,7 @@ describe('api', () => {
     const r = await request(srv).get('/api/config').expect(200)
     expect(r.body.alertmanagerURL).toBe('http://am.public:9093')
     expect(r.body.groupLabel).toBe('severity')
+    expect(r.body.grafana).toEqual([])
     expect(r.text).not.toContain('http://am:9093')
   })
 

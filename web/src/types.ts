@@ -10,6 +10,8 @@ export interface Alert {
   state: string
   silencedBy: string[]
   inhibitedBy: string[]
+  // PromQL of the rule, empty when Prometheus gave no generatorURL
+  expr: string
   promLinks: Link[]
 }
 
@@ -51,6 +53,7 @@ export interface UIConfig {
   hostLabels: string[]
   groupByLabels: { label: string; title: Localized }[]
   problemTitles?: Record<string, Localized>
+  grafana: { name: string; url: string; datasource: string; orgId: string }[]
   links: LinkTemplate[]
   views: ConfigView[]
 }

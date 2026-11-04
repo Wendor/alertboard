@@ -150,7 +150,7 @@ export function parseConfig(text: string, source = 'config', baseDir = process.c
     prometheus,
     grafana: list(raw.grafana, (x) => ({
       name: str(x.name) || 'grafana',
-      url: str(x.url),
+      url: str(x.url).replace(/\/$/, ''),
       datasource: str(x.datasource),
       orgId: str(x.org_id) || '1',
     })),

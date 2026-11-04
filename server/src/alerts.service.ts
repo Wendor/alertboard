@@ -14,6 +14,7 @@ export interface Alert {
   state: string
   silencedBy: string[]
   inhibitedBy: string[]
+  expr: string
   promLinks: Link[]
 }
 
@@ -61,10 +62,8 @@ export class AlertsService {
       state: a.status?.state ?? '',
       silencedBy: a.status?.silencedBy ?? [],
       inhibitedBy: a.status?.inhibitedBy ?? [],
-      promLinks: [
-        ...this.enricher.promLinks(a.generatorURL ?? ''),
-        ...this.enricher.grafanaLinks(a.generatorURL ?? '', a.startsAt),
-      ],
+      expr: this.enricher.expr(a.generatorURL ?? ''),
+      promLinks: this.enricher.promLinks(a.generatorURL ?? ''),
     }
   }
 }

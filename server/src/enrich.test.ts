@@ -43,27 +43,11 @@ describe('Enricher', () => {
     expect(new Enricher([], []).promLinks('http://x:9090/graph?a=1')).toEqual([{ name: 'prom', url: 'http://x:9090/graph?a=1' }])
   })
 
-  it('grafanaLinks builds explore url with the alert expression', () => {
-    const e = new Enricher([], [], [{ name: 'grafana', url: 'https://grafana.example/', datasource: 'ds1', orgId: '1' }])
-    const gen = 'http://x:9090/graph?g0.expr=up%7Bjob%3D%22node%22%7D+%3D%3D+0&g0.tab=1'
-    const [l] = e.grafanaLinks(gen, '2026-11-04T10:00:00Z', Date.parse('2026-11-04T20:00:00Z'))
-    expect(l.name).toBe('grafana')
-    const u = new URL(l.url)
-    expect(u.origin + u.pathname).toBe('https://grafana.example/explore')
-    expect(u.searchParams.get('orgId')).toBe('1')
-    expect(JSON.parse(u.searchParams.get('panes')!)).toEqual({
-      a: {
-        datasource: 'ds1',
-        queries: [{ refId: 'A', expr: 'up{job="node"} == 0', range: true, instant: false, datasource: { type: 'prometheus', uid: 'ds1' } }],
-        range: { from: String(Date.parse('2026-11-04T09:00:00Z')), to: 'now' },
-      },
-    })
-    const fresh = e.grafanaLinks(gen, '2026-11-04T10:00:00Z', Date.parse('2026-11-04T12:00:00Z'))[0]
-    expect(JSON.parse(new URL(fresh.url).searchParams.get('panes')!).a.range).toEqual({ from: 'now-6h', to: 'now' })
-    const old = e.grafanaLinks(gen, '2026-11-04T10:00:00Z', Date.parse('2026-11-10T10:00:00Z'))[0]
-    expect(JSON.parse(new URL(old.url).searchParams.get('panes')!).a.range).toEqual({ from: 'now-24h', to: 'now' })
-    expect(e.grafanaLinks('http://x:9090/graph', '2026-11-04T10:00:00Z')).toEqual([])
-    expect(e.grafanaLinks('', '2026-11-04T10:00:00Z')).toEqual([])
+  it('expr is taken from generatorURL', () => {
+    const e = new Enricher([], [], [{ name: 'grafana', url: 'https://grafana.example', datasource: 'ds1', orgId: '1' }])
+    expect(e.expr('http://x:9090/graph?g0.expr=up%7Bjob%3D%22node%22%7D+%3D%3D+0&g0.tab=1')).toBe('up{job="node"} == 0')
+    expect(e.expr('http://x:9090/graph')).toBe('')
+    expect(e.expr('')).toBe('')
     expect(() => new Enricher([], [], [{ name: 'g', url: 'https://g', datasource: '', orgId: '1' }])).toThrow(/datasource/)
   })
 

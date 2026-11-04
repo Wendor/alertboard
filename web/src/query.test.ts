@@ -14,6 +14,7 @@ function alert(labels: Record<string, string>, extra: Partial<Alert> = {}): Aler
     state: 'active',
     silencedBy: [],
     inhibitedBy: [],
+    expr: '',
     promLinks: [],
     ...extra,
   }

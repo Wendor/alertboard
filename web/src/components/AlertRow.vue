@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { formatAge, formatTime, formatValue } from '../duration'
 import { hostOf, isSuppressed, startOf, type Row } from '../group'
+import { grafanaLinks } from '../grafana'
 import { dateLocale, t, tr } from '../i18n'
 import { commonLabels, renderLink, silenceURL } from '../links'
 import type { Alert, UIConfig, ViewState } from '../types'
@@ -15,7 +16,11 @@ const labelsOpen = ref(new Set<string>())
 
 const r = computed(() => props.row)
 const problems = computed(() => [...new Set(r.value.alerts.map((a) => a.problem))])
-const promLinks = computed(() => r.value.alerts.find((a) => a.promLinks.length)?.promLinks ?? [])
+const promLinks = computed(() => [
+  ...(r.value.alerts.find((a) => a.promLinks.length)?.promLinks ?? []),
+  ...grafanaLinks(r.value.alerts, props.cfg, props.now),
+])
+const alertLinks = (a: Alert) => [...a.promLinks, ...grafanaLinks([a], props.cfg, props.now)]
 const silenceAll = computed(() => silenceURL(props.cfg.alertmanagerURL, commonLabels(r.value.alerts)))
 const suppressed = computed(() => r.value.alerts.filter(isSuppressed).length)
 const single = computed(() => r.value.count === 1)
@@ -66,7 +71,7 @@ const extraLinks = (a: Alert) => props.cfg.links.map((l) => ({ name: tr(l.name),
           <span v-if="a.annotations.value" class="value" :title="a.annotations.value">{{ formatValue(a.annotations.value) }}</span>
           <span v-if="isSuppressed(a)" class="badge">🔕</span>
           <span class="links">
-            <a v-for="l in a.promLinks" :key="l.name" :href="l.url" target="_blank" rel="noopener">{{ l.name }}</a>
+            <a v-for="l in alertLinks(a)" :key="l.name" :href="l.url" target="_blank" rel="noopener">{{ l.name }}</a>
             <a :href="silenceURL(cfg.alertmanagerURL, a.labels)" target="_blank" rel="noopener">{{ $t('row.silence') }}</a>
             <a v-for="l in extraLinks(a)" :key="l.name" :href="l.url" target="_blank" rel="noopener">{{ l.name }}</a>
             <button class="link" @click="toggleLabels(a.fingerprint)">{{ $t('row.labels') }}</button>

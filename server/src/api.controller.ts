@@ -1,6 +1,6 @@
 import { Controller, Get, Header, HttpException, HttpStatus, Inject, Logger } from '@nestjs/common'
 import { AlertsService, type AlertsResponse } from './alerts.service.js'
-import type { Config, UI } from './config.js'
+import type { Config, GrafanaLink, UI } from './config.js'
 import { CONFIG } from './tokens.js'
 
 @Controller('api')
@@ -26,7 +26,7 @@ export class ApiController {
 
   @Get('config')
   @Header('Cache-Control', 'no-store')
-  getConfig(): UI & { alertmanagerURL: string } {
-    return { alertmanagerURL: this.cfg.alertmanager.publicUrl, ...this.cfg.ui }
+  getConfig(): UI & { alertmanagerURL: string; grafana: GrafanaLink[] } {
+    return { alertmanagerURL: this.cfg.alertmanager.publicUrl, grafana: this.cfg.grafana, ...this.cfg.ui }
   }
 }
