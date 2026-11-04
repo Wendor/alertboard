@@ -1,31 +1,22 @@
 import { startOf } from './group'
+import { addMatcher, hostMatcher } from './promql'
 import type { Alert, Link, UIConfig } from './types'
 
 const HOUR = 3_600_000
-const MARK = 'alertboard_host'
 
-// host label -> values, using for each alert the label its host is taken from (ui.host_labels)
-export function hostFilter(alerts: Alert[], cfg: UIConfig): Map<string, string[]> {
-  const m = new Map<string, Set<string>>()
+// matcher for the hosts of the alerts, by the label each host comes from (ui.host_labels);
+// null when an alert has no host label or the alerts disagree on the label
+export function hostSelector(alerts: Alert[], cfg: UIConfig): string | null {
+  const labels = new Set<string>()
+  const values = new Set<string>()
   for (const a of alerts) {
     const label = cfg.hostLabels.find((l) => a.labels[l])
-    if (label) (m.get(label) ?? m.set(label, new Set()).get(label)!).add(a.labels[label])
+    if (!label) return null
+    labels.add(label)
+    values.add(a.labels[label])
   }
-  return new Map([...m].map(([l, v]) => [l, [...v].sort()]))
-}
-
-const reEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const promString = (s: string) => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
-
-// Keeps only series of the given hosts without parsing the expression: matching series get a
-// temporary label, "and" drops the rest, the outer label_replace removes the label again.
-export function filterExpr(expr: string, filter: Map<string, string[]>): string {
-  if (!filter.size) return expr
-  let marked = `(${expr})`
-  for (const [label, values] of filter) {
-    marked = `label_replace(${marked}, "${MARK}", "1", ${promString(label)}, ${promString(values.map(reEscape).join('|'))})`
-  }
-  return `label_replace(${marked} and on(${MARK}) label_replace(vector(1), "${MARK}", "1", "", ""), "${MARK}", "", "", "")`
+  if (labels.size !== 1) return null
+  return hostMatcher([...labels][0], [...values].sort())
 }
 
 // from an hour before the start, clamped to the last 6..24 hours
@@ -40,7 +31,8 @@ export function grafanaLinks(alerts: Alert[], cfg: UIConfig, now = Date.now()): 
   const expr = alerts.find((a) => a.expr)?.expr
   if (!expr || !cfg.grafana.length) return []
   const same = alerts.filter((a) => a.expr === expr)
-  const query = filterExpr(expr, hostFilter(same, cfg))
+  const matcher = hostSelector(same, cfg)
+  const query = matcher ? addMatcher(expr, matcher) : expr
   const from = rangeFrom(Math.min(...same.map(startOf)), now)
   return cfg.grafana.map((g) => {
     const panes = {
