@@ -38,9 +38,8 @@ describe('addMatcher', () => {
 })
 
 describe('keepSeries', () => {
-  it('filters the result by label values', () => {
-    expect(keepSeries('up{node="h"} == 0', 'instance', ['h:9104', 'h:9105'])).toBe(
-      'label_replace(label_replace((up{node="h"} == 0), "alertboard_keep", "1", "instance", "h:9104|h:9105") and on(alertboard_keep) label_replace(vector(1), "alertboard_keep", "1", "", ""), "alertboard_keep", "", "", "")',
-    )
+  it('restricts the result to the targets via up', () => {
+    expect(keepSeries('up{node="h"} == 0', 'instance', ['h:9104', 'h:9105'])).toBe('(up{node="h"} == 0) and on(instance) up{instance=~"h:9104|h:9105"}')
+    expect(keepSeries('x > 1', 'instance', ['h:9104'])).toBe('(x > 1) and on(instance) up{instance="h:9104"}')
   })
 })

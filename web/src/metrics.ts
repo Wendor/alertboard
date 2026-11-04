@@ -39,7 +39,7 @@ export function scopedExpr(alerts: Alert[], cfg: UIConfig): { query: string; ale
   const hosts = hostsOf(same, cfg)
   if (!hosts) return { query: expr, alerts: same }
   // selectors narrowed by host; a host may run several targets (e.g. two mysqld),
-  // so the result is cut down to the alerts' own instances as well
+  // so the result is cut down to the alerts' own instances (through their up series) as well
   let query = addMatcher(expr, hostMatcher(hosts.label, hosts.values))
   if (hosts.label !== 'instance' && same.every((a) => a.labels.instance)) {
     query = keepSeries(query, 'instance', [...new Set(same.map((a) => a.labels.instance))].sort())

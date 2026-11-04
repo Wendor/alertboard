@@ -114,13 +114,8 @@ export function hostMatcher(label: string, values: string[]): string {
   return values.length === 1 ? `${label}=${promString(values[0])}` : `${label}=~${promString(values.map(reEscape).join('|'))}`
 }
 
-const MARK = 'alertboard_keep'
-
-// Keeps only result series whose label matches one of the values, without touching selectors:
-// matching series get a temporary label, "and" drops the rest, the outer label_replace removes it.
-// Cheap only on an already narrowed expression, since it filters after evaluation.
+// Keeps only result series whose label is one of the values, matched against the targets'
+// up series: every scraped target has one with the same instance, so no selector is touched.
 export function keepSeries(expr: string, label: string, values: string[]): string {
-  const re = promString(values.map(reEscape).join('|'))
-  const marked = `label_replace((${expr}), "${MARK}", "1", ${promString(label)}, ${re})`
-  return `label_replace(${marked} and on(${MARK}) label_replace(vector(1), "${MARK}", "1", "", ""), "${MARK}", "", "", "")`
+  return `(${expr}) and on(${label}) up{${hostMatcher(label, values)}}`
 }
