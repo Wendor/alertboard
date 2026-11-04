@@ -1,0 +1,74 @@
+listen: 127.0.0.1:8080
+cache_ttl: 5s
+
+alertmanager:
+  url: http://alertmanager:9093
+  # address browsers use for silence links, defaults to url
+  public_url: http://alertmanager.example.com
+
+prometheus:
+  # where alert links point to; generatorURL host is replaced by this url
+  url: http://prometheus.example.com
+  name: prom
+  # extra Prometheus links shown next to the main one
+  extra: []
+  #  - name: prom-dr
+  #    url: http://prometheus-dr.example.com
+
+# Grafana Explore with the alert expression, no dashboard needed;
+# datasource is the uid of a Prometheus datasource (see its URL in Grafana)
+grafana: []
+#  - name: grafana
+#    url: https://grafana.example.com
+#    datasource: <datasource uid>
+#    org_id: 1
+
+# regex over alertname (anchored), first match wins; unmatched alerts keep their alertname.
+# Any title/name below may be a plain string or a per-language map {ru: ..., en: ...};
+# the first translation is the stable key (hidden problems, saved views refer to it).
+problems:
+  - match: '.*(DiskSpace|FilesystemSpace|DiskFull).*'
+    title: { ru: Мало места на диске, en: Low disk space }
+  - match: '.*(TargetDown|TargetIsDown|InstanceDown).*'
+    title: { ru: Таргет недоступен, en: Target down }
+  - match: '.*(HighLoad|LoadAverage).*'
+    title: { ru: Высокая нагрузка, en: High load }
+
+ui:
+  # label that splits alerts into sections
+  group_label: severity
+  # section order and titles; values not listed go after them
+  groups:
+    - name: critical
+      title: Critical
+    - name: warning
+      title: Warning
+    - name: info
+      title: Info
+  stale_after: 7d
+  fresh_within: 1h
+  # labels used as the alert's host, first present wins
+  host_labels: [instance]
+  # extra "group by" options
+  group_by_labels: []
+  #  - label: team
+  #    title: команда
+  # labels ignored by free-text search (label=value filters still work)
+  search_skip_labels: []
+  # {{label}} is replaced by the alert's label value
+  links: []
+  #  - name: grafana
+  #    url: https://grafana.example.com/d/node?var-instance={{instance}}
+  views:
+    - name: { ru: Актуальное, en: Current }
+      group_by: [group, problem]
+      hidden_groups: [info]
+      range: 24h
+    - name: { ru: Всё, en: All }
+      group_by: [group, problem]
+      show_silenced: true
+      collapse_stale: false
+      range: 7d
+    - name: { ru: Проблемы, en: Problems }
+      group_by: [problem, host]
+      range: 24h

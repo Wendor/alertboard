@@ -1,0 +1,16 @@
+services:
+  alertboard:
+    image: ghcr.io/wendor/alertboard:latest
+    # to build from source instead: docker compose up -d --build
+    build: .
+    ports:
+      # without AUTH_USER/AUTH_PASSWORD the UI is open: keep it local
+      - "127.0.0.1:8080:8080"
+    environment:
+      AM_USER: ${AM_USER:-}
+      AM_PASSWORD: ${AM_PASSWORD:-}
+      AUTH_USER: ${AUTH_USER:-}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-}
+    volumes:
+      - ./config.yaml:/etc/alertboard/config.yaml:ro
+    restart: unless-stopped
