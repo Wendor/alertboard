@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addMatcher, hostMatcher } from './promql'
+import { addMatcher, hostMatcher, keepSeries } from './promql'
 
 const m = (e: string) => addMatcher(e, 'node="h"')
 
@@ -34,5 +34,13 @@ describe('addMatcher', () => {
   it('builds the matcher', () => {
     expect(hostMatcher('node', ['db1.dc'])).toBe('node="db1.dc"')
     expect(hostMatcher('node', ['db1.dc', 'a"b'])).toBe('node=~"db1\\\\.dc|a\\"b"')
+  })
+})
+
+describe('keepSeries', () => {
+  it('filters the result by label values', () => {
+    expect(keepSeries('up{node="h"} == 0', 'instance', ['h:9104', 'h:9105'])).toBe(
+      'label_replace(label_replace((up{node="h"} == 0), "alertboard_keep", "1", "instance", "h:9104|h:9105") and on(alertboard_keep) label_replace(vector(1), "alertboard_keep", "1", "", ""), "alertboard_keep", "", "", "")',
+    )
   })
 })

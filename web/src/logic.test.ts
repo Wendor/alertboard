@@ -306,6 +306,14 @@ describe('prom links', () => {
     const links = promLinks(a, cfg)
     expect(links.map((l) => l.name)).toEqual(['prom', 'prom-b'])
     expect(links.map((l) => expr(l.url))).toEqual(['up{node=~"n1|n2"} == 0', 'up{node=~"n1|n2"} == 0'])
+    const withInstance = [
+      alert({ node: 'db', instance: 'db:13308' }, H, { expr: 'x > 1', promLinks: gen('x > 1') }),
+      alert({ node: 'db2', instance: 'db2:3306' }, H, { expr: 'x > 1', promLinks: gen('x > 1') }),
+    ]
+    const q = expr(promLinks(withInstance, cfg)[0].url)!
+    expect(q.startsWith('label_replace(label_replace((x{node=~"db|db2"} > 1), "alertboard_keep", "1", "instance", "db2:3306|db:13308")')).toBe(true)
+    const byInstance = { ...cfg, hostLabels: ['instance'] }
+    expect(expr(promLinks(withInstance, byInstance)[0].url)).toBe('x{instance=~"db2:3306|db:13308"} > 1')
     expect(new URL(links[0].url).searchParams.get('g0.tab')).toBe('1')
     expect(expr(promLinks([a[2]], cfg)[0].url)).toBe('other{node="n3"}')
   })

@@ -1,12 +1,12 @@
 import { startOf } from './group'
-import { addMatcher, hostMatcher } from './promql'
+import { addMatcher, hostMatcher, keepSeries } from './promql'
 import type { Alert, Link, UIConfig } from './types'
 
 const HOUR = 3_600_000
 
-// matcher for the hosts of the alerts, by the label each host comes from (ui.host_labels);
+// label and values the hosts of the alerts come from (ui.host_labels);
 // null when an alert has no host label or the alerts disagree on the label
-export function hostSelector(alerts: Alert[], cfg: UIConfig): string | null {
+function hostsOf(alerts: Alert[], cfg: UIConfig): { label: string; values: string[] } | null {
   const labels = new Set<string>()
   const values = new Set<string>()
   for (const a of alerts) {
@@ -16,7 +16,12 @@ export function hostSelector(alerts: Alert[], cfg: UIConfig): string | null {
     values.add(a.labels[label])
   }
   if (labels.size !== 1) return null
-  return hostMatcher([...labels][0], [...values].sort())
+  return { label: [...labels][0], values: [...values].sort() }
+}
+
+export function hostSelector(alerts: Alert[], cfg: UIConfig): string | null {
+  const h = hostsOf(alerts, cfg)
+  return h && hostMatcher(h.label, h.values)
 }
 
 // from an hour before the start, clamped to the last 6..24 hours
@@ -31,8 +36,15 @@ export function scopedExpr(alerts: Alert[], cfg: UIConfig): { query: string; ale
   const expr = alerts.find((a) => a.expr)?.expr
   if (!expr) return null
   const same = alerts.filter((a) => a.expr === expr)
-  const matcher = hostSelector(same, cfg)
-  return { query: matcher ? addMatcher(expr, matcher) : expr, alerts: same }
+  const hosts = hostsOf(same, cfg)
+  if (!hosts) return { query: expr, alerts: same }
+  // selectors narrowed by host; a host may run several targets (e.g. two mysqld),
+  // so the result is cut down to the alerts' own instances as well
+  let query = addMatcher(expr, hostMatcher(hosts.label, hosts.values))
+  if (hosts.label !== 'instance' && same.every((a) => a.labels.instance)) {
+    query = keepSeries(query, 'instance', [...new Set(same.map((a) => a.labels.instance))].sort())
+  }
+  return { query, alerts: same }
 }
 
 // Prometheus links as built by the server, with g0.expr replaced by the narrowed expression
