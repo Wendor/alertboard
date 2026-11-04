@@ -151,12 +151,24 @@ function sectionsOf(alerts: Alert[], view: ViewState, cfg: UIConfig, now: number
     })
   }
   const order = new Map(cfg.groups.map((g, i) => [g.name, i]))
+  const custom = new Map(view.sectionOrder.map((k, i) => [k, i]))
   const rank = (s: Section) => {
+    const c = custom.get(s.key)
+    if (c !== undefined) return c - custom.size
     if (s.key === '' && k1 !== 'none') return Number.MAX_SAFE_INTEGER
     if (k1 === 'group') return order.get(s.key) ?? cfg.groups.length
     return 0
   }
   return sections.sort((a, b) => rank(a) - rank(b) || b.newest - a.newest)
+}
+
+// swaps section i with its neighbour; keys of sections not shown now keep their saved place at the end
+export function moveSection(sections: Section[], saved: string[], i: number, dir: -1 | 1): string[] {
+  const keys = sections.map((s) => s.key)
+  const j = i + dir
+  if (j < 0 || j >= keys.length) return saved
+  ;[keys[i], keys[j]] = [keys[j], keys[i]]
+  return [...keys, ...saved.filter((k) => !keys.includes(k))]
 }
 
 export function buildSections(

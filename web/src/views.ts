@@ -22,6 +22,7 @@ export function fromConfig(v: ConfigView, cfg: UIConfig): ViewState {
     groupBy: asGroupBy(v.groupBy, cfg),
     hiddenGroups: v.hiddenGroups ?? [],
     hiddenProblems: v.hiddenProblems ?? [],
+    sectionOrder: v.sectionOrder ?? [],
     showSilenced: v.showSilenced ?? false,
     collapseStale: v.collapseStale ?? true,
     staleAfter: v.staleAfter || cfg.staleAfter,
@@ -72,6 +73,7 @@ export function toHash(v: ViewState): string {
   p.set('g', v.groupBy.join(','))
   if (v.hiddenGroups.length) p.set('hg', v.hiddenGroups.join(','))
   if (v.hiddenProblems.length) p.set('hp', v.hiddenProblems.join('|'))
+  if (v.sectionOrder.length) p.set('o', v.sectionOrder.join('|'))
   if (v.showSilenced) p.set('silenced', '1')
   if (!v.collapseStale) p.set('stale', 'show')
   p.set('sa', v.staleAfter)
@@ -92,6 +94,7 @@ export function fromHash(hash: string, cfg: UIConfig): ViewState | null {
     groupBy: asGroupBy(g, cfg),
     hiddenGroups: split(p.get('hg'), ','),
     hiddenProblems: split(p.get('hp'), '|'),
+    sectionOrder: split(p.get('o'), '|'),
     showSilenced: p.get('silenced') === '1',
     collapseStale: p.get('stale') !== 'show',
     staleAfter: p.get('sa') || cfg.staleAfter,

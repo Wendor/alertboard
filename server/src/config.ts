@@ -36,6 +36,7 @@ export interface View {
   groupBy?: string[]
   hiddenGroups?: string[]
   hiddenProblems?: string[]
+  sectionOrder?: string[]
   showSilenced: boolean
   collapseStale?: boolean
   staleAfter?: string
@@ -110,6 +111,7 @@ function view(v: Raw): View {
     groupBy: strings(v.group_by),
     hiddenGroups: strings(v.hidden_groups),
     hiddenProblems: strings(v.hidden_problems),
+    sectionOrder: strings(v.section_order),
     showSilenced: v.show_silenced === true,
     collapseStale: typeof v.collapse_stale === 'boolean' ? v.collapse_stale : undefined,
     staleAfter: str(v.stale_after) || undefined,

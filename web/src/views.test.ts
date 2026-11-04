@@ -49,6 +49,7 @@ describe('views', () => {
       groupBy: ['problem', 'host'],
       hiddenGroups: ['batch', ''],
       hiddenProblems: ['Мало места на диске', 'A,B'],
+      sectionOrder: ['ops', '', 'core'],
       showSilenced: true,
       collapseStale: false,
       staleAfter: '3d',

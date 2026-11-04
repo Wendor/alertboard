@@ -67,6 +67,8 @@ ui:
     - name: { ru: Актуальное, en: Current }
       group_by: [group, problem]
       hidden_groups: [info]
+      # optional: section order of this view (values of the first grouping level)
+      # section_order: [critical, warning]
       range: 24h
     - name: { ru: Всё, en: All }
       group_by: [group, problem]

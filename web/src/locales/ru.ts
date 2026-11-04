@@ -43,6 +43,8 @@ export default {
   list: {
     empty: 'Нет алертов под текущие фильтры',
     stale: 'давние (старше {d})',
+    moveUp: 'Переместить выше',
+    moveDown: 'Переместить ниже',
   },
   toolbar: {
     search: 'поиск: хост, алерт, текст… или instance=~db.*  severity!=info',

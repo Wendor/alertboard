@@ -352,6 +352,31 @@ input {
   cursor: pointer;
   background: var(--panel-2);
 }
+.section-head .move {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  opacity: 0;
+}
+.section-head:hover .move,
+.section-head .move:focus-within {
+  opacity: 1;
+}
+@media (hover: none) {
+  .section-head .move {
+    opacity: 1;
+  }
+}
+.section-head .move .link {
+  padding: 0 6px;
+  font-size: 14px;
+}
+.section-head .move .link:disabled {
+  visibility: hidden;
+}
+.section-head .move + .chev {
+  margin-left: 4px;
+}
 .section-head .chev {
   margin-left: auto;
 }

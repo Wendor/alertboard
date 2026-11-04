@@ -45,6 +45,8 @@ const en: typeof ru = {
   list: {
     empty: 'No alerts match the current filters',
     stale: 'stale (older than {d})',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
   },
   toolbar: {
     search: 'search: host, alert, text… or instance=~db.*  severity!=info',

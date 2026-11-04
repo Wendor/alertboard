@@ -79,7 +79,7 @@ Space-separated terms, all must match:
 
 ## Views
 
-A view is a search query, grouping, hidden groups and problems, showing silenced alerts, the stale threshold and the timeline scale. Changes are marked with a dot on the tab, "save" writes them into the view. Views are stored in the browser's `localStorage`; while it holds any, views from the config are not applied. The current state, including the selected timeline range, is kept in the page URL, so it can be shared as a link.
+A view is a search query, grouping, section order, hidden groups and problems, showing silenced alerts, the stale threshold and the timeline scale. Sections are reordered with the ↑ ↓ arrows in their headers (shown on hover; `section_order` sets the order of a view from the config). Changes are marked with a dot on the tab, "save" writes them into the view. Views are stored in the browser's `localStorage`; while it holds any, views from the config are not applied. The current state, including the selected timeline range, is kept in the page URL, so it can be shared as a link.
 
 ## License
 

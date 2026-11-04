@@ -34,6 +34,7 @@ export interface ConfigView {
   groupBy?: string[]
   hiddenGroups?: string[]
   hiddenProblems?: string[]
+  sectionOrder?: string[]
   showSilenced?: boolean
   collapseStale?: boolean
   staleAfter?: string
@@ -72,6 +73,8 @@ export interface ViewState {
   groupBy: [GroupKey, GroupKey]
   hiddenGroups: string[]
   hiddenProblems: string[]
+  // section keys in the user's order; sections not listed follow in the default order
+  sectionOrder: string[]
   showSilenced: boolean
   collapseStale: boolean
   staleAfter: string

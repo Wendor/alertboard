@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { apiURL } from './api'
 import { formatAge, formatValue, parseDuration } from './duration'
 import { setLocale, tr } from './i18n'
-import { buildSections, filterAlerts } from './group'
+import { buildSections, filterAlerts, moveSection } from './group'
 import { commonLabels, renderLink, silenceURL } from './links'
 import { buildHistogram } from './timeline'
 import type { Alert, UIConfig, ViewState } from './types'
@@ -50,6 +50,7 @@ const view = (over: Partial<ViewState> = {}): ViewState => ({
   groupBy: ['group', 'problem'],
   hiddenGroups: [],
   hiddenProblems: [],
+  sectionOrder: [],
   showSilenced: false,
   collapseStale: true,
   staleAfter: '7d',
@@ -180,6 +181,28 @@ describe('buildSections', () => {
     const flat = buildSections(a, view({ groupBy: ['none', 'none'] }), cfg, NOW)
     expect(flat.sections).toHaveLength(1)
     expect(flat.sections[0].rows).toHaveLength(3)
+  })
+})
+
+describe('section order', () => {
+  const a = [
+    alert({ alertname: 'A', team: 'core' }, H),
+    alert({ alertname: 'B', team: 'ops' }, H),
+    alert({ alertname: 'C' }, H),
+  ]
+  const titles = (order: string[]) => buildSections(a, view({ sectionOrder: order }), cfg, NOW).sections.map((s) => s.title)
+
+  it('custom order goes first, unlisted sections follow in default order', () => {
+    expect(titles([])).toEqual(['Core', 'Ops', 'без группы'])
+    expect(titles(['', 'ops'])).toEqual(['без группы', 'Ops', 'Core'])
+    expect(titles(['ops'])).toEqual(['Ops', 'Core', 'без группы'])
+  })
+
+  it('moveSection swaps neighbours and keeps saved keys of hidden sections', () => {
+    const { sections } = buildSections(a, view(), cfg, NOW)
+    expect(moveSection(sections, ['gone'], 1, -1)).toEqual(['ops', 'core', '', 'gone'])
+    expect(moveSection(sections, [], 0, -1)).toEqual([])
+    expect(moveSection(sections, [], 2, 1)).toEqual([])
   })
 })
 
