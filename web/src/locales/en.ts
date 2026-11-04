@@ -30,6 +30,7 @@ const en: typeof ru = {
     d: '{n} d',
     mo: '{n} mo',
   },
+  num: { sep: '.', m: '{n}M', b: '{n}B', t: '{n}T' },
   query: { badRegex: 'invalid regex: {tok}' },
   row: {
     started: 'started: {time}',

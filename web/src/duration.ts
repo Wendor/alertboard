@@ -36,7 +36,10 @@ export function formatValue(v: string): string {
   const s = v.trim()
   const n = Number(s)
   if (s === '' || !Number.isFinite(n)) return v
-  if (Math.abs(n) >= 1e6) return new Intl.NumberFormat(dateLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+  // own suffixes instead of Intl compact notation: its output differs between ICU versions
+  for (const [div, key] of [[1e12, 'num.t'], [1e9, 'num.b'], [1e6, 'num.m']] as const) {
+    if (Math.abs(n) >= div) return t(key, { n: String(Number((n / div).toFixed(1))).replace('.', t('num.sep')) })
+  }
   if (!Number.isInteger(n)) return String(Number(n.toFixed(2)))
   return String(n)
 }

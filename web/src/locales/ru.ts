@@ -28,6 +28,7 @@ export default {
     d: '{n} д',
     mo: '{n} мес',
   },
+  num: { sep: ',', m: '{n}\u00a0млн', b: '{n}\u00a0млрд', t: '{n}\u00a0трлн' },
   query: { badRegex: 'неверная регулярка: {tok}' },
   row: {
     started: 'начало: {time}',

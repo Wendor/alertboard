@@ -82,6 +82,8 @@ describe('formatValue', () => {
     expect(formatValue('')).toBe('')
     setLocale('en')
     expect(formatValue('5.5770223e+07')).toBe('55.8M')
+    expect(formatValue('-2.5e9')).toBe('-2.5B')
+    expect(formatValue('1e6')).toBe('1M')
   })
 })
 
